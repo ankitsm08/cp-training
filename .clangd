@@ -1,0 +1,21 @@
+CompileFlags:
+  Add:
+    - -O2
+    - -Wall
+    - -Wextra
+    - -Wshadow
+    - -Wno-unknown-pragmas
+    - -Wno-sign-compare
+    - -std=c++17
+
+    - -fsanitize=address
+    - -fsanitize=undefined
+
+Diagnostics:
+  UnusedIncludes: None
+
+InlayHints:
+  Enabled: Yes
+  ParameterNames: Yes
+  DeducedTypes: Yes
+  Designators: Yes
