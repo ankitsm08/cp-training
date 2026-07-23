@@ -1,0 +1,18 @@
+# binaries
+*.out
+*.o
+*.exe
+*.class
+
+# ide
+*.swp
+.vscode/
+.idea/
+
+# cache
+.ruff_cache/
+
+# python venv
+.venv/
+__pycache__/
+
