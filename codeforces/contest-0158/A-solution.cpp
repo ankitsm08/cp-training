@@ -7,25 +7,17 @@ int main() {
   cin >> n >> k;
 
   int advanced = 0;
-  int score = 0;
-  while (k--) {
-    n--;
-    cin >> score;
-    if (score > 0)
-      advanced++;
-    else
-      break;
-  }
+  int kth_score = 0;
 
-  if (score > 0) {
-    int last_score = score;
-    while (n--) {
-      cin >> score;
-      if (score == last_score)
-        advanced++;
-      else
-        break;
-    }
+  for (int i = 1; i <= n; i++) {
+    int score;
+    cin >> score;
+
+    if (i == k)
+      kth_score = score;
+
+    if (score > 0 && (i <= k || score == kth_score))
+      advanced++;
   }
 
   cout << advanced << '\n';
