@@ -140,7 +140,7 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
 
   yaml_header = "---\n" + yaml.dump(frontmatter, sort_keys=False, allow_unicode=True) + "---\n\n"
 
-  md_path = os.path.join(out_dir, f"problem-{index}.md")
+  md_path = os.path.join(out_dir, f"{index}-problem.md")
   with open(md_path, "w", encoding="utf-8") as f:
     f.write(yaml_header + body_md)
 

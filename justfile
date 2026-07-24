@@ -40,10 +40,11 @@ format-all:
 cf contest_id index:
     @echo "==> Creating Codeforces problem..."
 
-    @dir="codeforces/contest-{{ contest_id }}"; \
+    @padded_id=$(printf '%04d' {{ contest_id }}); \
+    dir="codeforces/contest-$padded_id"; \
     mkdir -p "$dir"; \
     idx=$(echo "{{ index }}" | tr 'a-z' 'A-Z'); \
-    cpp_file="$dir/solution-$idx.cpp"; \
+    cpp_file="$dir/$idx-solution.cpp"; \
     if [ ! -f "$cpp_file" ]; then \
       cp "templates/base.cpp" "$cpp_file"; \
       echo "==> Populated $cpp_file"; \
@@ -52,5 +53,5 @@ cf contest_id index:
     fi; \
     .venv/bin/python scripts/cf_fetch.py {{ contest_id }} $idx "$dir"
 
-    @just format-md "codeforces/contest-{{ contest_id }}"
-    @just format-cpp "codeforces/contest-{{ contest_id }}"
+    @just format-md "codeforces/contest-$(printf '%04d' {{ contest_id }})"
+    @just format-cpp "codeforces/contest-$(printf '%04d' {{ contest_id }})"
