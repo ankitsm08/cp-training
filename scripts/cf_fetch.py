@@ -36,15 +36,22 @@ def clean_markdown(text: str) -> str:
 def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
   index = index.upper()
   url = f"https://codeforces.com/problemset/problem/{contest_id}/{index}"
+  cache_file = CACHE_DIR / f"{contest_id}_{index}.html"
 
-  # Using curl_cffi to bypass Cloudflare
-  r = requests.get(url, timeout=20, impersonate="chrome")
+  # Check cache
+  if cache_file.exists():
+    print(f"==> Using cached HTML from {cache_file}")
+    html_text = cache_file.read_text(encoding="utf-8")
+  else:
+    # Using curl_cffi to bypass Cloudflare
+    r = requests.get(url, timeout=20, impersonate="chrome")
+    if r.status_code != 200:
+      print(f"Error: HTTP {r.status_code} fetching {url}")
+      sys.exit(1)
+    html_text = r.text
+    cache_file.write_text(html_text, encoding="utf-8")
 
-  if r.status_code != 200:
-    print(f"Error: HTTP {r.status_code} fetching {url}")
-    sys.exit(1)
-
-  soup = BeautifulSoup(r.text, "html.parser")
+  soup = BeautifulSoup(html_text, "html.parser")
   problem_div = soup.find("div", class_="problem-statement")
 
   if not problem_div:
