@@ -1,6 +1,6 @@
 # Competitive Programming Training
 
-My personal collection of competitive programming solutions, notes, and template code for data structures and algorithms. Primarily focused on **Codeforces** (the main training ground) with occasional **AtCoder** on the side. Written in **C++**, the standard pragma setup, `<bits/stdc++.h>`, fast I/O, the usual competitive programming workflow.
+My personal collection of competitive programming solutions, notes, and template code for data structures and algorithms. Primarily focused on **Codeforces** (the main training ground) with occasional **AtCoder** on the side. Written in **C++**, the standard pragma setup, fast I/O, the usual competitive programming workflow.
 
 ## Repository Structure
 
@@ -11,12 +11,17 @@ My personal collection of competitive programming solutions, notes, and template
 ```text
 codeforces/
   ├── contest-4/
-  │   ├── problem-A.md
-  │   ├── solution-A.cpp
+  │   ├── A-problem.md
+  │   ├── A-solution.cpp
+  │   ├── A-notes.md
+  │   ├── B-problem.md
+  │   ├── B-solution.cpp
+  │   ├── B-notes.md
   │   └── ...
   ├── contest-{id}/
-  │   ├── problem-{idx}.md
-  │   └── solution-{idx}cpp
+  │   ├── {idx}-problem.md
+  │   └── {idx}-solution.cpp
+  │   └── {idx}-notes.md
 templates/
   ├── base.cpp
   ├── **/
