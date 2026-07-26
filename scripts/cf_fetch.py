@@ -115,6 +115,14 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
 
     tex.replace_with(f"${math_text}$")
 
+  # Normalize <pre> content: newer CF wraps each sample line in <div>
+  for pre in problem_div.find_all("pre"):
+    divs = pre.find_all("div", recursive=False)
+    if divs:
+      lines = [div.get_text(strip=True) for div in divs]
+      pre.clear()
+      pre.string = "\n".join(lines) + "\n"
+
   html_content = str(problem_div)
 
   # Convert modern Codeforces MathJax ($$$) into standard LaTeX ($)
