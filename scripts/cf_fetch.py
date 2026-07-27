@@ -6,14 +6,14 @@ from pathlib import Path
 
 import yaml
 from bs4 import BeautifulSoup
-from curl_cffi import requests
+from camoufox.sync_api import Camoufox
 from markdownify import markdownify as md
 from unicode_to_latex import UNICODE_TO_LATEX
 
 CACHE_DIR = Path.home() / ".cache" / "codeforces"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-# Web garbage cleaner
+# Non-printable control characters and web artifacts cleaner
 WEB_GARBAGE = re.compile(
   r"[\u0000-\u0008\u000B\u000C\u000E-\u001F]"
   r"|[\u007F]"
@@ -28,9 +28,23 @@ WEB_GARBAGE = re.compile(
 def clean_markdown(text: str) -> str:
   text = unicodedata.normalize("NFKC", text)
   text = WEB_GARBAGE.sub("", text)
-  # Markdownify sometimes escapes backslashes in math blocks
   text = text.replace("\\\\", "\\")
   return text.strip()
+
+
+def get_problem_html(contest_id: str, index: str) -> str:
+  """Fetch problem statement HTML headlessly using Camoufox."""
+  url = f"https://codeforces.com/problemset/problem/{contest_id}/{index}"
+
+  try:
+    with Camoufox(headless=True) as browser:
+      page = browser.new_page()
+      page.goto(url)
+      page.wait_for_selector("div.problem-statement", timeout=25000)
+      return page.content()
+  except Exception as e:
+    print(f"Error fetching problem HTML for {contest_id}{index}: {e}", file=sys.stderr)
+    sys.exit(1)
 
 
 def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
@@ -38,27 +52,19 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
   url = f"https://codeforces.com/problemset/problem/{contest_id}/{index}"
   cache_file = CACHE_DIR / f"{contest_id}_{index}.html"
 
-  # Check cache
   if cache_file.exists():
-    print(f"==> Using cached HTML from {cache_file}")
     html_text = cache_file.read_text(encoding="utf-8")
   else:
-    # Using curl_cffi to bypass Cloudflare
-    r = requests.get(url, timeout=20, impersonate="chrome")
-    if r.status_code != 200:
-      print(f"Error: HTTP {r.status_code} fetching {url}")
-      sys.exit(1)
-    html_text = r.text
+    html_text = get_problem_html(contest_id, index)
     cache_file.write_text(html_text, encoding="utf-8")
 
   soup = BeautifulSoup(html_text, "html.parser")
   problem_div = soup.find("div", class_="problem-statement")
 
   if not problem_div:
-    print(f"Error: Could not find problem statement for {contest_id}{index}")
+    print(f"Error: Could not find problem statement for {contest_id}{index}", file=sys.stderr)
     sys.exit(1)
 
-  # Extract Meta (Title, Limits, Tags)
   title_el = problem_div.find("div", class_="title")
   title = title_el.text if title_el else f"Problem {index}"
 
@@ -80,28 +86,39 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
     else:
       clean_tags.append(t)
 
-  # CLEANUP HTML FOR MARKDOWN
-
-  # Delete the entire header (Removes duplicate limits and IO specs)
+  # 1. Remove statement header containing redundant metadata
   header_div = problem_div.find("div", class_="header")
   if header_div:
     header_div.decompose()
 
-  # Convert CF section titles (Input, Output, Note) to Markdown H3
+  # 2. Remove "Copy" buttons from sample test blocks
+  for copier in problem_div.find_all("div", class_="input-output-copier"):
+    copier.decompose()
+
+  # 3. Map Codeforces font style classes to standard HTML tags
+  for span in problem_div.find_all("span", class_=True):
+    classes = span.get("class")
+    if isinstance(classes, list):
+      if "tex-font-style-tt" in classes:
+        span.name = "code"
+      elif "tex-font-style-bf" in classes:
+        span.name = "b"
+      elif "tex-font-style-it" in classes:
+        span.name = "i"
+
+  # 4. Format section headings
   for sec_title in problem_div.find_all("div", class_="section-title"):
     h3 = soup.new_tag("h3")
     h3.string = sec_title.get_text(strip=True)
     sec_title.replace_with(h3)
 
-  # Convert sample test headers to Markdown H4
   for sample_title in problem_div.find_all("div", class_="title"):
     h4 = soup.new_tag("h4")
     h4.string = sample_title.get_text(strip=True)
     sample_title.replace_with(h4)
 
-  # Convert older Codeforces math blocks (<span class="tex-span">) into LaTeX
+  # 5. Convert legacy Codeforces HTML math elements to LaTeX
   for tex in problem_div.find_all("span", class_="tex-span"):
-    # Convert super/sub scripts to LaTeX ^ and _
     for sup in tex.find_all("sup"):
       sup.insert_before("^{")
       sup.insert_after("}")
@@ -113,16 +130,13 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
 
     math_text = tex.get_text(strip=True)
 
-    # Map unicode math symbols to LaTeX equivalents
     for uni_char, latex_cmd in UNICODE_TO_LATEX.items():
       math_text = math_text.replace(uni_char, f" {latex_cmd} ")
 
-    # Clean up double spaces created by replacement padding
     math_text = re.sub(r"\s+", " ", math_text).strip()
-
     tex.replace_with(f"${math_text}$")
 
-  # Normalize <pre> content: newer CF wraps each sample line in <div>
+  # 6. Normalize sample test block structure
   for pre in problem_div.find_all("pre"):
     divs = pre.find_all("div", recursive=False)
     if divs:
@@ -131,17 +145,17 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
       pre.string = "\n".join(lines) + "\n"
 
   html_content = str(problem_div)
-
-  # Convert modern Codeforces MathJax ($$$) into standard LaTeX ($)
   html_content = re.sub(r"\$\$\$(.*?)\$\$\$", r"$\1$", html_content, flags=re.DOTALL)
 
-  # Convert HTML to MD
-  # We turn off escaping for _ and * so it doesn't break math like $a_i$
-  body_md = md(html_content, heading_style="ATX", escape_asterisks=False, escape_underscores=False).strip()
+  body_md = md(
+    html_content,
+    heading_style="ATX",
+    escape_asterisks=False,
+    escape_underscores=False,
+  ).strip()
 
   body_md = clean_markdown(body_md)
 
-  # Generate YAML Frontmatter
   frontmatter = {
     "contest_id": int(contest_id),
     "index": index,
@@ -159,12 +173,10 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
   with open(md_path, "w", encoding="utf-8") as f:
     f.write(yaml_header + body_md)
 
-  print(f"==> Updated {md_path}")
-
 
 if __name__ == "__main__":
   if len(sys.argv) < 4:
-    print("Usage: python cf_fetch.py <contest_id> <index> <out_dir>")
+    print("Usage: python cf_fetch.py <contest_id> <index> <out_dir>", file=sys.stderr)
     sys.exit(1)
 
   fetch_cf_problem(sys.argv[1], sys.argv[2], sys.argv[3])

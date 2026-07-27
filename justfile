@@ -8,7 +8,8 @@ default:
 venv:
     @echo "==> Creating venv..."
     ls .venv || uv venv --python=3.14
-    uv pip install requests markdownify pandas numpy beautifulsoup4 pyyaml curl_cffi
+    uv pip install requests markdownify pandas numpy beautifulsoup4 pyyaml curl_cffi camoufox
+    .venv/bin/python -m camoufox fetch
 
 format-md target="":
     @echo "==> Formatting Markdown files..."
