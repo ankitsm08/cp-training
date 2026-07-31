@@ -5,8 +5,8 @@
 
 using namespace std;
 
-typedef long long ll;
-typedef unsigned long long ull;
+using ll = long long;
+using ull = unsigned long long;
 
 void solve() {
   // Solve
@@ -14,7 +14,7 @@ void solve() {
 
 int main() {
   ios_base::sync_with_stdio(false);
-  cin.tie(NULL);
+  cin.tie(nullptr);
 
   int t = 1;
   cin >> t;
