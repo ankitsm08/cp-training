@@ -2,7 +2,7 @@
 contest_id: 2250
 index: B
 title: B. String Construction
-rating: Unrated
+rating: 1000
 tags:
   - constructive algorithms
 time_limit: 1 second
@@ -12,14 +12,14 @@ url: https://codeforces.com/problemset/problem/2250/B
 
 You are given two integers $n$ and $k$.
 
-Construct a binary string$^{\text{∗}}$ $s$ of length $n$, such that both of the following conditions hold:
+Construct a binary string [*1] $s$ of length $n$, such that both of the following conditions hold:
 
 - The absolute difference between the number of characters $\mathtt{0}$ and the number of characters $\mathtt{1}$ in $s$ is at most $1$.
 - There are exactly $k$ pairs of adjacent equal characters in $s$. Formally, there are exactly $k$ indices $i$ ($1 \le i \le n-1$) satisfying $s_i = s_{i + 1}$.
 
 Or determine that no such string exists.
 
-$^{\text{∗}}$A binary string is a string where each character is either $\mathtt{0}$ or $\mathtt{1}$.
+[*1] A binary string is a string where each character is either $\mathtt{0}$ or $\mathtt{1}$.
 
 ### Input
 

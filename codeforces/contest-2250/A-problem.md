@@ -2,8 +2,9 @@
 contest_id: 2250
 index: A
 title: A. Threshold Movement
-rating: Unrated
+rating: 800
 tags:
+  - brute force
   - implementation
   - math
 time_limit: 1 second
@@ -19,9 +20,9 @@ You choose an integer $k$. Then every element moves exactly once, simultaneously
 - If $w_i \gt k$, the element at position $i$ moves to position $i+1$;
 - If $w_i=k$, the entire movement process fails immediately.
 
-An integer $k$ is perfect if the movement does not fail and, upon completion, every position from $1$ to $n$ contains exactly one element.
+An integer $k$ is _perfect_ if the movement does not fail and, upon completion, every position from $1$ to $n$ contains exactly one element.
 
-Determine whether a perfect integer $k$ exists.
+Determine whether a _perfect_ integer $k$ exists.
 
 ### Input
 
@@ -33,9 +34,9 @@ The second line of each test case contains $n$ integers $w_1,w_2,\ldots,w_n$ ($1
 
 ### Output
 
-For each test case, print "YES" if a perfect integer $k$ exists, and "NO" otherwise.
+For each test case, print "`YES`" if a _perfect_ integer $k$ exists, and "`NO`" otherwise.
 
-You can output the answer in any case (upper or lower). For example, the strings "yEs", "yes", "Yes", and "YES" will be recognized as positive responses.
+You can output the answer in any case (upper or lower). For example, the strings "`yEs`", "`yes`", "`Yes`", and "`YES`" will be recognized as positive responses.
 
 ### Example
 
