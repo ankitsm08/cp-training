@@ -47,12 +47,12 @@ def get_problem_html(contest_id: str, index: str) -> str:
     sys.exit(1)
 
 
-def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
+def fetch_cf_problem(contest_id: str, index: str, out_dir: str, force: bool = False):
   index = index.upper()
   url = f"https://codeforces.com/problemset/problem/{contest_id}/{index}"
   cache_file = CACHE_DIR / f"{contest_id}_{index}.html"
 
-  if cache_file.exists():
+  if not force and cache_file.exists():
     html_text = cache_file.read_text(encoding="utf-8")
   else:
     html_text = get_problem_html(contest_id, index)
@@ -175,8 +175,10 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str):
 
 
 if __name__ == "__main__":
-  if len(sys.argv) < 4:
-    print("Usage: python cf_fetch.py <contest_id> <index> <out_dir>", file=sys.stderr)
+  force = "--force" in sys.argv or "-f" in sys.argv
+  args = [a for a in sys.argv[1:] if a not in ("--force", "-f")]
+  if len(args) < 3:
+    print("Usage: python cf_fetch.py [--force] <contest_id> <index> <out_dir>", file=sys.stderr)
     sys.exit(1)
 
-  fetch_cf_problem(sys.argv[1], sys.argv[2], sys.argv[3])
+  fetch_cf_problem(args[0], args[1], args[2], force=force)

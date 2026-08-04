@@ -59,3 +59,16 @@ cf contest_id index:
     @just format-md "codeforces/contest-$(printf '%04d' {{ contest_id }})"
     @just format-cpp "codeforces/contest-$(printf '%04d' {{ contest_id }})"
     @echo "==> Finished fetching and formatting"
+
+# force refetch a problem statement, bypassing the HTML cache
+cf-refetch contest_id index:
+    @echo "==> Force-refetching Codeforces problem (no cache)..."
+
+    @padded_id=$(printf '%04d' {{ contest_id }}); \
+    dir="codeforces/contest-$padded_id"; \
+    mkdir -p "$dir"; \
+    idx=$(echo "{{ index }}" | tr 'a-z' 'A-Z'); \
+    .venv/bin/python scripts/cf_fetch.py --force {{ contest_id }} $idx "$dir"
+
+    @just format-md "codeforces/contest-$(printf '%04d' {{ contest_id }})"
+    @echo "==> Finished force-refetching and formatting"
