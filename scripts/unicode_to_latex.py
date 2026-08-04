@@ -6,11 +6,14 @@ UNICODE_TO_LATEX = {
   "≠": r"\ne",
   "×": r"\times",
   "·": r"\cdot",
+  "⋅": r"\cdot",  # U+22C5 DOT OPERATOR (newer statements)
   "…": r"\dots",
   "±": r"\pm",
   "≈": r"\approx",
   "≡": r"\equiv",
   "−": "-",  # U+2212 Minus Sign -> standard minus
+  "∗": "*",  # U+2217 ASTERISK OPERATOR (footnote mark)
+  "†": r"\dagger",  # U+2020 DAGGER (footnote mark)
   "²": "^2",
   "³": "^3",
   "½": r"\frac{1}{2}",

@@ -32,6 +32,65 @@ def clean_markdown(text: str) -> str:
   return text.strip()
 
 
+def polish_footnotes(text: str) -> str:
+  """Ensure [*N] footnote markers are spaced on both sides, outside code blocks."""
+  chunks = re.split(r"(```[\s\S]*?```)", text)
+  out = []
+  for chunk in chunks:
+    if chunk.startswith("```"):
+      out.append(chunk)
+      continue
+    chunk = re.sub(r"\[\*(\d+)\]", r" [*\1] ", chunk)
+    chunk = re.sub(r" {2,}", " ", chunk)
+    chunk = re.sub(r"(?m)^ ", "", chunk)
+    out.append(chunk)
+  return "".join(out)
+
+
+# MathJax footnote marker, e.g. ^{\text{∗}} or ^{\text{†}}
+FOOTNOTE_MARK = re.compile(r"\A\^?\{?\\text\{([^}]*)\}\}?\Z")
+
+# Codeforces footnote symbols in canonical order: asterisk, dagger, double
+# dagger, section, pilcrow, number sign
+FOOTNOTE_COMMAND_TO_SYMBOL = {
+  r"\ast": "∗",
+  r"\star": "∗",
+  r"\dagger": "†",
+  r"\ddagger": "‡",
+  r"\S": "§",
+  r"\P": "¶",
+}
+FOOTNOTE_SYMBOLS = "∗†‡§¶#"
+
+
+class FootnoteMapper:
+  """Assign sequential ASCII labels (*1, *2, ...) to footnote markers.
+
+  Codeforces uses unicode footnote symbols (∗, †, ...); each symbol appears
+  twice - inline in the statement and at its definition. Keying by symbol in
+  document order keeps inline marker and definition consistent, and any
+  number of footnotes just extends the count.
+  """
+
+  def __init__(self):
+    self._next = 1
+    self._numbers: dict[str, int] = {}
+
+  def map(self, text: str) -> str | None:
+    """Return the *N label for a footnote-mark math token, or None."""
+    m = FOOTNOTE_MARK.fullmatch(text)
+    if not m:
+      return None
+    mark = m.group(1).strip()
+    mark = FOOTNOTE_COMMAND_TO_SYMBOL.get(mark, mark)
+    if len(mark) != 1 or mark not in FOOTNOTE_SYMBOLS:
+      return None
+    if mark not in self._numbers:
+      self._numbers[mark] = self._next
+      self._next += 1
+    return f"[*{self._numbers[mark]}]"
+
+
 def get_problem_html(contest_id: str, index: str) -> str:
   """Fetch problem statement HTML headlessly using Camoufox."""
   url = f"https://codeforces.com/problemset/problem/{contest_id}/{index}"
@@ -118,7 +177,12 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str, force: bool = Fa
     sample_title.replace_with(h4)
 
   # 5. Convert legacy Codeforces HTML math elements to LaTeX
+  footnotes = FootnoteMapper()
   for tex in problem_div.find_all("span", class_="tex-span"):
+    mark = footnotes.map(tex.get_text(strip=True))
+    if mark:
+      tex.replace_with(mark)
+      continue
     for sup in tex.find_all("sup"):
       sup.insert_before("^{")
       sup.insert_after("}")
@@ -135,6 +199,24 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str, force: bool = Fa
 
     math_text = re.sub(r"\s+", " ", math_text).strip()
     tex.replace_with(f"${math_text}$")
+
+  # 5b. New-format MathJax statements: each math token is a MathJax_Preview span
+  # (flattened unicode + double-render junk) followed by a <script type="math/tex">
+  # holding the raw TeX. Use the TeX, drop the preview spans.
+  for script in problem_div.find_all("script", {"type": "math/tex"}):
+    tex = script.get_text(strip=True)
+    mark = footnotes.map(tex)
+    if mark:
+      script.replace_with(mark)
+    else:
+      script.replace_with(f"${tex}$")
+  for el in problem_div.find_all("span"):
+    classes = el.get("class")
+    if isinstance(classes, list):
+      for cls in ("MathJax_Preview", "MathJax_Processed", "MathJax_Processing"):
+        if cls in classes:
+          el.extract()
+          break
 
   # 6. Normalize sample test block structure
   for pre in problem_div.find_all("pre"):
@@ -155,6 +237,7 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str, force: bool = Fa
   ).strip()
 
   body_md = clean_markdown(body_md)
+  body_md = polish_footnotes(body_md)
 
   frontmatter = {
     "contest_id": int(contest_id),

@@ -60,6 +60,29 @@ cf contest_id index:
     @just format-cpp "codeforces/contest-$(printf '%04d' {{ contest_id }})"
     @echo "==> Finished fetching and formatting"
 
+# list problems still rated Unrated (contest problems needing a rating refresh)
+cf-unrated:
+    @echo "==> Problems with rating: Unrated..."
+    @files=$(rg -l "^rating: Unrated$" codeforces/*/*-problem.md 2>/dev/null || true); \
+    if [ -z "$files" ]; then \
+      echo "(none)"; \
+    else \
+      echo "$files"; \
+    fi
+
+# refetch every problem still rated Unrated
+cf-refetch-unrated:
+    @files=$(rg -l "^rating: Unrated$" codeforces/*/*-problem.md 2>/dev/null || true); \
+    if [ -z "$files" ]; then \
+      echo "==> No unrated problems"; \
+    else \
+      for f in $files; do \
+        contest=$(basename "$(dirname "$f")" | sed 's/^contest-//'); \
+        idx=$(basename "$f" | cut -c1); \
+        just cf-refetch "$contest" "$idx"; \
+      done; \
+    fi
+
 # force refetch a problem statement, bypassing the HTML cache
 cf-refetch contest_id index:
     @echo "==> Force-refetching Codeforces problem (no cache)..."
