@@ -78,7 +78,7 @@ cf-refetch-unrated:
     else \
       for f in $files; do \
         contest=$(basename "$(dirname "$f")" | sed 's/^contest-//'); \
-        idx=$(basename "$f" | cut -c1); \
+        idx=$(basename "$f" | cut -d- -f1); \
         just cf-refetch "$contest" "$idx"; \
       done; \
     fi
