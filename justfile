@@ -54,7 +54,7 @@ cf contest_id index:
     else \
       echo "==> $cpp_file already exists"; \
     fi; \
-    .venv/bin/python scripts/cf_fetch.py {{ contest_id }} $idx "$dir"
+    .venv/bin/python scripts/cf_fetch.py "$dir" {{ contest_id }} $idx
 
     @just format-md "codeforces/contest-$(printf '%04d' {{ contest_id }})"
     @just format-cpp "codeforces/contest-$(printf '%04d' {{ contest_id }})"
@@ -70,16 +70,20 @@ cf-unrated:
       echo "$files"; \
     fi
 
-# refetch every problem still rated Unrated
+# refetch every problem still rated Unrated, batched per contest (one browser session per contest)
 cf-refetch-unrated:
     @files=$(rg -l "^rating: Unrated$" codeforces/*/*-problem.md 2>/dev/null || true); \
     if [ -z "$files" ]; then \
       echo "==> No unrated problems"; \
     else \
-      for f in $files; do \
-        contest=$(basename "$(dirname "$f")" | sed 's/^contest-//'); \
-        idx=$(basename "$f" | cut -d- -f1); \
-        just cf-refetch "$contest" "$idx"; \
+      for dir in $(for f in $files; do dirname "$f"; done | sort -u); do \
+        ids=""; \
+        for f in $files; do \
+          [ "$(dirname "$f")" = "$dir" ] && ids="$ids $(basename "$f" | cut -d- -f1)"; \
+        done; \
+        contest=$(basename "$dir" | sed 's/^contest-//'); \
+        echo "==> Refreshing $contest: $ids"; \
+        .venv/bin/python scripts/cf_fetch.py --force "$dir" "$contest" $ids; \
       done; \
     fi
 
@@ -91,7 +95,60 @@ cf-refetch contest_id index:
     dir="codeforces/contest-$padded_id"; \
     mkdir -p "$dir"; \
     idx=$(echo "{{ index }}" | tr 'a-z' 'A-Z'); \
-    .venv/bin/python scripts/cf_fetch.py --force {{ contest_id }} $idx "$dir"
+    .venv/bin/python scripts/cf_fetch.py --force "$dir" {{ contest_id }} $idx
 
     @just format-md "codeforces/contest-$(printf '%04d' {{ contest_id }})"
     @echo "==> Finished force-refetching and formatting"
+
+# bulk fetch several problems of one contest in a single browser session
+# (e.g. `just cf-bulk 2254 a b c1 c2`); seeds missing solutions
+cf-bulk contest_id +indices:
+    @echo "==> Bulk creating Codeforces problems (single browser session)..."
+
+    @padded_id=$(printf '%04d' {{ contest_id }}); \
+    dir="codeforces/contest-$padded_id"; \
+    mkdir -p "$dir"; \
+    ids=""; \
+    for idx in {{ indices }}; do \
+      up=$(echo "$idx" | tr 'a-z' 'A-Z'); \
+      ids="$ids $up"; \
+      cpp_file="$dir/$up-solution.cpp"; \
+      if [ ! -f "$cpp_file" ]; then \
+        cp "templates/base.cpp" "$cpp_file"; \
+        echo "==> Populated $cpp_file"; \
+      fi; \
+    done; \
+    .venv/bin/python scripts/cf_fetch.py "$dir" {{ contest_id }} $ids
+
+    @just format-md "codeforces/contest-$(printf '%04d' {{ contest_id }})"
+    @just format-cpp "codeforces/contest-$(printf '%04d' {{ contest_id }})"
+    @echo "==> Finished bulk fetch and formatting"
+
+# force refetch every problem statement of a contest in a single browser session;
+# seeds missing solutions (use after the contest ends and ratings land)
+cf-refresh contest_id:
+    @echo "==> Refreshing whole contest (single browser session, no cache)..."
+
+    @padded_id=$(printf '%04d' {{ contest_id }}); \
+    dir="codeforces/contest-$padded_id"; \
+    if [ ! -d "$dir" ]; then \
+      echo "No contest directory: $dir"; \
+      exit 1; \
+    fi; \
+    ids=$(shopt -s nullglob; for f in "$dir"/*-problem.md; do basename "$f"; done | sed 's/-problem\.md$//' | sort | tr '\n' ' '); \
+    if [ -z "$ids" ]; then \
+      echo "No problem statements found in $dir"; \
+      exit 1; \
+    fi; \
+    echo "==> Problems: $ids"; \
+    for idx in $ids; do \
+      cpp_file="$dir/$idx-solution.cpp"; \
+      if [ ! -f "$cpp_file" ]; then \
+        cp "templates/base.cpp" "$cpp_file"; \
+        echo "==> Populated $cpp_file"; \
+      fi; \
+    done; \
+    .venv/bin/python scripts/cf_fetch.py --force "$dir" {{ contest_id }} $ids
+
+    @just format-md "codeforces/contest-$(printf '%04d' {{ contest_id }})"
+    @echo "==> Finished refreshing contest"

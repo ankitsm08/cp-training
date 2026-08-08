@@ -91,38 +91,34 @@ class FootnoteMapper:
     return f"[*{self._numbers[mark]}]"
 
 
-def get_problem_html(contest_id: str, index: str) -> str:
-  """Fetch problem statement HTML headlessly using Camoufox."""
-  url = f"https://codeforces.com/problemset/problem/{contest_id}/{index}"
+def get_problem_html(contest_id: str, index: str, page=None) -> str:
+  """Fetch problem statement HTML.
 
-  try:
+  Reuses an open browser page when given (single-session bulk fetch); otherwise
+  opens a fresh headless browser. Errors propagate to the caller.
+  """
+  url = f"https://codeforces.com/problemset/problem/{contest_id}/{index}"
+  if page is None:
     with Camoufox(headless=True) as browser:
       page = browser.new_page()
       page.goto(url)
       page.wait_for_selector("div.problem-statement", timeout=25000)
       return page.content()
-  except Exception as e:
-    print(f"Error fetching problem HTML for {contest_id}{index}: {e}", file=sys.stderr)
-    sys.exit(1)
+  page.goto(url)
+  page.wait_for_selector("div.problem-statement", timeout=25000)
+  return page.content()
 
 
-def fetch_cf_problem(contest_id: str, index: str, out_dir: str, force: bool = False):
-  index = index.upper()
+def parse_and_write(contest_id: str, index: str, out_dir: str, html_text: str) -> None:
+  """Convert problem-statement HTML into {index}-problem.md with YAML frontmatter."""
   url = f"https://codeforces.com/problemset/problem/{contest_id}/{index}"
-  cache_file = CACHE_DIR / f"{contest_id}_{index}.html"
-
-  if not force and cache_file.exists():
-    html_text = cache_file.read_text(encoding="utf-8")
-  else:
-    html_text = get_problem_html(contest_id, index)
-    cache_file.write_text(html_text, encoding="utf-8")
 
   soup = BeautifulSoup(html_text, "html.parser")
   problem_div = soup.find("div", class_="problem-statement")
 
   if not problem_div:
     print(f"Error: Could not find problem statement for {contest_id}{index}", file=sys.stderr)
-    sys.exit(1)
+    raise ValueError(f"no problem-statement div for {contest_id}{index}")
 
   title_el = problem_div.find("div", class_="title")
   title = title_el.text if title_el else f"Problem {index}"
@@ -257,11 +253,62 @@ def fetch_cf_problem(contest_id: str, index: str, out_dir: str, force: bool = Fa
     f.write(yaml_header + body_md)
 
 
+def fetch_cf_problem(contest_id: str, index: str, out_dir: str, force: bool = False, page=None) -> bool:
+  """Fetch + write one problem, reusing `page` (single browser session) if given.
+
+  Returns True on success, False on failure (caller decides how to exit).
+  """
+  index = index.upper()
+  cache_file = CACHE_DIR / f"{contest_id}_{index}.html"
+
+  try:
+    if not force and cache_file.exists():
+      html_text = cache_file.read_text(encoding="utf-8")
+    else:
+      html_text = get_problem_html(contest_id, index, page=page)
+      cache_file.write_text(html_text, encoding="utf-8")
+
+    parse_and_write(contest_id, index, out_dir, html_text)
+  except Exception as e:
+    print(f"Error fetching problem {contest_id}{index}: {e}", file=sys.stderr)
+    return False
+
+  print(f"  fetched {contest_id}{index}")
+  return True
+
+
 if __name__ == "__main__":
   force = "--force" in sys.argv or "-f" in sys.argv
   args = [a for a in sys.argv[1:] if a not in ("--force", "-f")]
   if len(args) < 3:
-    print("Usage: python cf_fetch.py [--force] <contest_id> <index> <out_dir>", file=sys.stderr)
+    print("Usage: python cf_fetch.py [--force] <out_dir> <contest_id> <index>...", file=sys.stderr)
     sys.exit(1)
 
-  fetch_cf_problem(args[0], args[1], args[2], force=force)
+  out_dir, contest_id = args[0], args[1]
+  indices = [i.upper() for i in args[2:]]
+
+  results: list[tuple[str, bool]] = []
+  # Skip browser spin-up entirely when every problem can be served from cache
+  pending = [i for i in indices if force or not (CACHE_DIR / f"{contest_id}_{i}.html").exists()]
+
+  if pending:
+    with Camoufox(headless=True) as browser:
+      for index in indices:
+        if force or not (CACHE_DIR / f"{contest_id}_{index}.html").exists():
+          page = browser.new_page()
+          ok = fetch_cf_problem(contest_id, index, out_dir, force=force, page=page)
+          page.close()
+        else:
+          ok = fetch_cf_problem(contest_id, index, out_dir, force=force)
+        results.append((index, ok))
+  else:
+    for index in indices:
+      ok = fetch_cf_problem(contest_id, index, out_dir, force=force)
+      results.append((index, ok))
+
+  failed = [i for i, ok in results if not ok]
+  if failed:
+    if len(failed) == len(indices):
+      print(f"All {len(indices)} problems failed to fetch", file=sys.stderr)
+      sys.exit(1)
+    print(f"Warning: {len(failed)} problem(s) failed: {', '.join(failed)}", file=sys.stderr)

@@ -49,6 +49,18 @@ Creates a new Codeforces problem directory, copies the base template, fetches th
 just cf <contest_id> <index>
 ```
 
+Fetches several problems of one contest in a single browser session and seeds missing solutions (e.g., `just cf-bulk 2254 a b c1 c2`):
+
+```bash
+just cf-bulk <contest_id> <index>...
+```
+
+Force-refetches every problem statement in a contest in a single browser session, seeding missing solutions (use after the contest ends and ratings land):
+
+```bash
+just cf-refresh <contest_id>
+```
+
 Runs the appropriate formatters on all supported files:
 
 ```bash
