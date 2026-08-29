@@ -84,6 +84,7 @@ cf-refetch-unrated:
         contest=$(basename "$dir" | sed 's/^contest-//'); \
         echo "==> Refreshing $contest: $ids"; \
         .venv/bin/python scripts/cf_fetch.py --force "$dir" "$contest" $ids; \
+        just format-md "$dir"; \
       done; \
     fi
 
