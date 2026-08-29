@@ -2,7 +2,7 @@
 contest_id: 2254
 index: C2
 title: C2. Marenol (hard version)
-rating: Unrated
+rating: 1200
 tags:
   - greedy
   - sortings

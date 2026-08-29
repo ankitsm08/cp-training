@@ -2,7 +2,7 @@
 contest_id: 2252
 index: A
 title: A. Boss Fight
-rating: Unrated
+rating: 800
 tags:
   - data structures
   - greedy

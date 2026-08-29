@@ -2,7 +2,7 @@
 contest_id: 2254
 index: D
 title: D. Silhouette
-rating: Unrated
+rating: 1300
 tags:
   - constructive algorithms
   - math

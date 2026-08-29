@@ -2,7 +2,7 @@
 contest_id: 2252
 index: B
 title: B. Always Changing
-rating: Unrated
+rating: 1100
 tags:
   - dp
   - greedy

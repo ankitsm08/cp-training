@@ -2,7 +2,7 @@
 contest_id: 2254
 index: C1
 title: C1. Marenol (easy version)
-rating: Unrated
+rating: 1000
 tags:
   - greedy
 time_limit: 2 seconds

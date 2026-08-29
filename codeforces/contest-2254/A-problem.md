@@ -2,7 +2,7 @@
 contest_id: 2254
 index: A
 title: A. Riptide
-rating: Unrated
+rating: 800
 tags:
   - implementation
   - sortings

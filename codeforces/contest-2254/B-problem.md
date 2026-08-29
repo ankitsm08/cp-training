@@ -2,7 +2,7 @@
 contest_id: 2254
 index: B
 title: B. Evanescent
-rating: Unrated
+rating: 900
 tags:
   - implementation
   - strings
