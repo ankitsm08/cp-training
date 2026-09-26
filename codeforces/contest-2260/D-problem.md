@@ -2,13 +2,13 @@
 contest_id: 2260
 index: D
 title: D. Signs of Prefix Sums
-rating: Unrated
+rating: 1700
 tags:
-  - binary search
   - brute force
   - constructive algorithms
   - dfs and similar
   - dp
+  - implementation
 time_limit: 2 seconds
 memory_limit: 512 megabytes
 url: https://codeforces.com/problemset/problem/2260/D

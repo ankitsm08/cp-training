@@ -2,7 +2,7 @@
 contest_id: 2260
 index: A
 title: A. Monocarp's Contest
-rating: Unrated
+rating: 800
 tags:
   - implementation
 time_limit: 2 seconds

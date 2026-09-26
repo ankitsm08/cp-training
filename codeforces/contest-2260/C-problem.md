@@ -2,7 +2,7 @@
 contest_id: 2260
 index: C
 title: C. Maximize XOR, Minimize Operations
-rating: Unrated
+rating: 1300
 tags:
   - bitmasks
   - greedy

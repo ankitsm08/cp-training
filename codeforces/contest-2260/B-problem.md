@@ -2,8 +2,9 @@
 contest_id: 2260
 index: B
 title: B. Monocarp and Projects
-rating: Unrated
+rating: 900
 tags:
+  - brute force
   - math
   - number theory
 time_limit: 2 seconds
